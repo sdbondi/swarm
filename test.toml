@@ -1,0 +1,11 @@
+[[swarm]]
+name = "validators"
+num_instances = 10
+executable = "/home/stan/tari/dan/target/debug/tari_validator_node"
+args = ["--base-path", "/home/stan/LitterBox/validators/vn${i}", "--json-rpc-address", "/ip4/127.0.0.1/tcp/${os_port}"]
+
+[[swarm]]
+name = "register"
+for_each_instance = "validators"
+executable = "/home/stan/tari/dan/target/debug/tari_validator_node_cli"
+args = ["vn", "register", "--json-rpc-address", "/ip4/127.0.0.1/tcp/${validators.@.os_port}"]
