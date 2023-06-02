@@ -1,7 +1,7 @@
 //   Copyright 2023 The Tari Project
 //   SPDX-License-Identifier: BSD-3-Clause
 
-use crate::config::SwarmConfig;
+use crate::manifest::{SwarmConfig, SwarmManifest};
 use crate::node::Node;
 use tokio::process::Command;
 
@@ -14,19 +14,20 @@ impl Swarm {
         Self { nodes: Vec::new() }
     }
 
-    // pub fn spawn_from_config(config: SwarmConfig) -> anyhow::Result<Self> {
-    //     let instances = (0..config.num_instances)
-    //         .map(|_| Command::new(config.executable).args(config.args).spawn())
-    //         .collect::<Result<Vec<_>, _>>()?;
-    //
-    //     Ok(Self {
-    //         nodes: instances
-    //             .into_iter()
-    //             .map(|ch| Node {
-    //                 name: config.name.clone().unwrap_or_else(|| "UNNAMED".to_string()),
-    //                 process: ch,
-    //             })
-    //             .collect(),
-    //     })
-    // }
+    pub fn spawn_from_manifest(manifest: SwarmManifest) -> anyhow::Result<Self> {
+        todo!()
+        // let instances = (0..config.num_instances)
+        //     .map(|_| Command::new(config.executable).args(config.args).spawn())
+        //     .collect::<Result<Vec<_>, _>>()?;
+        //
+        // Ok(Self {
+        //     nodes: instances
+        //         .into_iter()
+        //         .map(|ch| Node {
+        //             name: config.name.clone().unwrap_or_else(|| "UNNAMED".to_string()),
+        //             process: ch,
+        //         })
+        //         .collect(),
+        // })
+    }
 }

@@ -74,12 +74,9 @@ impl ValidatorNode {
         client
             .add_peer(AddPeerRequest {
                 public_key: PublicKey::from_hex(
-                    "44907f70503186118d00583be1ffada4545afb76a66e224e91ee1ccdb3285e30",
+                    "52bef4d946a13d3cc39f3adc11471b551109e0f3f7a726a941b4a7d3c3896160",
                 )?,
-                addresses: vec![
-                    "/onion3/teiqzp67p76lxx67bu6cigcdo7lrjdqakbn25plelqh3z6urbaorezqd:18141"
-                        .parse()?,
-                ],
+                addresses: vec!["/ip4/127.0.0.1/tcp/12345".parse()?],
                 wait_for_dial: false,
             })
             .await?;

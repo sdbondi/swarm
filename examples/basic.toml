@@ -1,0 +1,13 @@
+[[instances]]
+name = "Echo"
+swarm = "echo"
+spawn_range = "0..10"
+
+[[swarms]]
+name = "echo"
+executable = "/usr/bin/echo"
+args = [ "Hello {who}"]
+env = { SOME_ENV = "test" }
+
+[variables]
+who = "swarm"
