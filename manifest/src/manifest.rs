@@ -1,8 +1,8 @@
+use crate::variables::Variables;
 use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
 use std::collections::HashMap;
 use std::fmt::Display;
-use std::ops::RangeInclusive;
+use std::ops::{RangeBounds, RangeInclusive};
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -13,24 +13,22 @@ pub struct SwarmManifest {
     #[serde(default)]
     pub actions: Vec<SwarmAction>,
     #[serde(default)]
-    pub variables: HashMap<String, String>,
+    pub variables: Variables,
     #[serde(default)]
     pub instances: Vec<InstanceConfig>,
 }
 
 impl SwarmManifest {
-    pub fn get_instance_group(&self, name: &str) -> &InstanceConfig {
-        self.instances
-            .iter()
-            .find(|instance| instance.name == name)
-            .expect("Instance group not found")
+    pub fn get_instance_group(&self, name: &str) -> Option<&InstanceConfig> {
+        self.instances.iter().find(|instance| instance.name == name)
     }
 
-    pub fn get_swarm(&self, name: &str) -> &SwarmConfig {
-        self.swarms
-            .iter()
-            .find(|swarm| swarm.name == name)
-            .expect("Swarm not found")
+    pub fn get_swarm(&self, name: &str) -> Option<&SwarmConfig> {
+        self.swarms.iter().find(|swarm| swarm.name == name)
+    }
+
+    pub fn variables(&self) -> &Variables {
+        &self.variables
     }
 }
 
@@ -86,13 +84,23 @@ pub struct InstanceConfig {
     pub id_range: Option<InstanceIdRange>,
 }
 
+impl InstanceConfig {
+    pub fn get_id_range(&self) -> Option<InstanceIdRange> {
+        self.id_range
+            .clone()
+            .or_else(|| Some((0..self.num_instances?).into()))
+    }
+}
+
+pub type ProcessId = usize;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstanceIdRange {
-    range: RangeInclusive<usize>,
+    range: RangeInclusive<ProcessId>,
 }
 
 impl InstanceIdRange {
-    pub fn range(&self) -> RangeInclusive<usize> {
+    pub fn range(&self) -> RangeInclusive<ProcessId> {
         self.range.clone()
     }
 }
@@ -111,7 +119,7 @@ impl FromStr for InstanceIdRange {
         let end = if end.chars().nth(0).expect("empty checked") == '=' {
             end[1..].parse()?
         } else {
-            end.parse::<usize>()? - 1
+            end.parse::<ProcessId>()? - 1
         };
 
         Ok(InstanceIdRange { range: start..=end })
@@ -121,5 +129,21 @@ impl FromStr for InstanceIdRange {
 impl Display for InstanceIdRange {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}..={}", self.range.start(), self.range.end())
+    }
+}
+
+impl<T: RangeBounds<ProcessId>> From<T> for InstanceIdRange {
+    fn from(value: T) -> Self {
+        let start = match value.start_bound() {
+            std::ops::Bound::Included(&start) => start,
+            std::ops::Bound::Excluded(&start) => start + 1,
+            std::ops::Bound::Unbounded => 0,
+        };
+        let end = match value.end_bound() {
+            std::ops::Bound::Included(&end) => end,
+            std::ops::Bound::Excluded(&end) => end - 1,
+            std::ops::Bound::Unbounded => usize::MAX,
+        };
+        Self { range: start..=end }
     }
 }

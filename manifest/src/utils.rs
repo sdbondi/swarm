@@ -1,5 +1,5 @@
-use crate::manifest::config_format::ConfigFormat;
-use crate::manifest::manifest::SwarmManifest;
+use crate::config_format::ConfigFormat;
+use crate::manifest::SwarmManifest;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;

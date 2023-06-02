@@ -1,10 +1,10 @@
 //   Copyright 2023 The Tari Project
 //   SPDX-License-Identifier: BSD-3-Clause
 
-use crate::commands::check_config::CheckConfigCmd;
+use crate::commands::check_config::CheckManifestCmd;
 use crate::commands::spawn::StartSwarmCmd;
-use crate::manifest::{load_from_file, SwarmManifest};
 use clap::{Args, Parser, Subcommand};
+use manifest::{load_from_file, SwarmManifest};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -29,7 +29,7 @@ pub enum Command {
     #[clap(alias = "start")]
     StartSwarm(StartSwarmCmd),
     #[clap(alias = "check")]
-    CheckConfig(CheckConfigCmd),
+    CheckManifest(CheckManifestCmd),
 }
 
 #[derive(Debug, Args, Clone)]

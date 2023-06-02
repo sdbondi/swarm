@@ -1,0 +1,13 @@
+[package]
+name = "manager"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+manifest = { path = "../manifest" }
+
+anyhow = "1.0.71"
+sqlx = { version = "0.7.0-alpha.3", features = ["runtime-tokio", "sqlite"] }
+tokio = { version = "1.28.1", features = ["rt-multi-thread", "macros", "process"] }
+tokio-codec = "0.1.2"
+tokio-stream = "0.1.14"
