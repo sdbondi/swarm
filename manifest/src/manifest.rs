@@ -36,8 +36,8 @@ impl SwarmManifest {
 #[serde(deny_unknown_fields)]
 pub struct SwarmConfig {
     pub name: String,
-    pub executable: PathBuf,
-    pub working_dir: Option<PathBuf>,
+    pub executable: String,
+    pub working_dir: Option<String>,
     #[serde(default)]
     pub args: Vec<String>,
     #[serde(default)]
@@ -66,7 +66,7 @@ pub enum Action {
     JsonRpc {
         url: String,
         method: String,
-        params: serde_json::Value,
+        params: Option<serde_json::Value>,
     },
     FsRm {
         path: PathBuf,

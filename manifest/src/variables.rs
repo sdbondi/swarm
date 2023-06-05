@@ -19,7 +19,7 @@ impl Variables {
         self.0.get(key).map(|s| s.as_str())
     }
 
-    pub fn substitute(&self, s: &'static str) -> String {
+    pub fn substitute(&self, s: &str) -> String {
         // Wanted to use nom, but maaan.. :P Co-author: github co-pilot
         let mut result = String::new();
         let mut chars = s.chars().peekable();

@@ -11,7 +11,7 @@ id_range = "8..=16"
 [[swarms]]
 name = "validators"
 executable = "/home/stan/tari/dan/target/debug/tari_validator_node"
-working_dir = "/home/stan/LitterBox/validators"
+working_dir = "/home/stan/Litterbox/validators"
 ports = ["jrpc_port", "webui", "p2p"]
 args = [
     "--base-path",
@@ -32,14 +32,13 @@ actions = ["register", "add-peer"]
 [[actions]]
 name = "register"
 [actions.json_rpc]
-    url = "http://127.0.0.1:${validators.ports[jrpc_port]}/json_rpc"
-    method = "register_node"
-    params = { }
+    url = "http://127.0.0.1:{swarm.instance.ports[jrpc_port]}/json_rpc"
+    method = "register_validator_node"
 
 [[actions]]
 name = "add-peer"
 [actions.json_rpc]
-    url = "http://127.0.0.1:${validators.ports[jrpc_port]}/json_rpc"
+    url = "http://127.0.0.1:{swarm.instance.ports[jrpc_port]}/json_rpc"
     method = "add_peer"
     params.public_key= "{seed_peer_1_public_key}"
     params.addresses = ["{seed_peer_1_address}"]
@@ -49,8 +48,8 @@ name = "add-peer"
 name = "delete-data-dir"
 restart_on_action = true
 [actions.fs_rm]
-path = "{validators.base_dir}/localnet/data/validator/db"
-force = true
+    path = "/home/stan/Litterbox/validators/vn{swarm.instance.id}/localnet/data/validator/db"
+    force = true
 
 [variables]
 seed_peer_1_public_key = "44907f70503186118d00583be1ffada4545afb76a66e224e91ee1ccdb3285e30"

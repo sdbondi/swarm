@@ -1,5 +1,6 @@
 use crate::config_format::ConfigFormat;
 use crate::manifest::SwarmManifest;
+use anyhow::Context;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -13,7 +14,8 @@ pub fn load_from_file<P: AsRef<Path>>(path: P) -> anyhow::Result<SwarmManifest> 
         .to_str()
         .unwrap()
         .parse()?;
-    let mut config_file = File::open(&path).expect("Failed to open config file");
+    let mut config_file = File::open(&path)
+        .with_context(|| format!("Open config file {} failed", path.as_ref().display()))?;
     load_from_reader(config_file, config_fmt)
 }
 
