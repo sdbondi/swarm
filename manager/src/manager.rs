@@ -33,22 +33,22 @@ impl ProcessManager {
         &self.action_provider
     }
 
-    pub async fn spawn_instance_group(&mut self, instance: &str) -> anyhow::Result<()> {
-        let instance = self
+    pub async fn spawn_swarm(&mut self, name: &str) -> anyhow::Result<()> {
+        let swarm = self
             .manifest
-            .get_instance_group(instance)
+            .get_swarm(name)
             .ok_or(anyhow::anyhow!("Instance group not found"))?;
 
         let mut conn = self.storage.get_connection().await?;
         let mut tx = conn.begin().await?;
-        for id in instance.get_id_range().unwrap().range() {
+        for id in swarm.get_id_range().unwrap().range() {
             let is_first_start =
-                !models::ProcessEntity::instance_exists(&mut tx, &instance.name, id).await?;
-            let process = Process::spawn(id, instance, self, is_first_start)
+                !models::ProcessEntity::instance_exists(&mut tx, &swarm.name, id).await?;
+            let process = Process::spawn(id, swarm, self, is_first_start)
                 .await
                 .context("Failed to spawn process")?;
 
-            models::ProcessEntity::create_if_nexist(&mut tx, &instance.name, &process).await?;
+            models::ProcessEntity::create_if_nexist(&mut tx, &swarm.name, &process).await?;
             println!("Spawned process: {}", process.instance_id());
             self.processes.push(process);
         }

@@ -10,6 +10,7 @@ use std::time::Duration;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SwarmManifest {
+    #[serde(default)]
     pub swarms: Vec<SwarmConfig>,
     #[serde(default)]
     pub actions: Vec<SwarmAction>,
@@ -20,7 +21,7 @@ pub struct SwarmManifest {
 }
 
 impl SwarmManifest {
-    pub fn get_instance_group(&self, name: &str) -> Option<&InstanceConfig> {
+    pub fn get_instance(&self, name: &str) -> Option<&InstanceConfig> {
         self.instances.iter().find(|instance| instance.name == name)
     }
 
@@ -36,17 +37,19 @@ impl SwarmManifest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SwarmConfig {
+    pub swarm: String,
     pub name: String,
-    pub executable: String,
-    pub working_dir: Option<String>,
     #[serde(default)]
-    pub args: Vec<String>,
-    #[serde(default)]
-    pub env: HashMap<String, String>,
-    #[serde(default)]
-    pub ports: Vec<String>,
-    #[serde(default)]
-    pub actions: SwarmActions,
+    pub num_instances: Option<usize>,
+    #[serde(default, with = "crate::serde::string::option")]
+    pub id_range: Option<InstanceIdRange>,
+}
+impl SwarmConfig {
+    pub fn get_id_range(&self) -> Option<InstanceIdRange> {
+        self.id_range
+            .clone()
+            .or_else(|| Some((0..self.num_instances?).into()))
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -98,19 +101,17 @@ pub enum Action {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct InstanceConfig {
-    pub swarm: String,
     pub name: String,
-    pub num_instances: Option<usize>,
-    #[serde(with = "crate::serde::string::option")]
-    pub id_range: Option<InstanceIdRange>,
-}
-
-impl InstanceConfig {
-    pub fn get_id_range(&self) -> Option<InstanceIdRange> {
-        self.id_range
-            .clone()
-            .or_else(|| Some((0..self.num_instances?).into()))
-    }
+    pub executable: String,
+    pub working_dir: Option<String>,
+    #[serde(default)]
+    pub args: Vec<String>,
+    #[serde(default)]
+    pub env: HashMap<String, String>,
+    #[serde(default)]
+    pub ports: Vec<String>,
+    #[serde(default)]
+    pub actions: SwarmActions,
 }
 
 pub type InstanceId = usize;

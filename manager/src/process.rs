@@ -32,30 +32,30 @@ impl Process {
 
     pub async fn spawn(
         instance_id: InstanceId,
-        instance: &InstanceConfig,
+        swarm: &SwarmConfig,
         manager: &ProcessManager,
         is_first_start: bool,
     ) -> anyhow::Result<Self> {
         let mut vars = manager.manifest().variables().clone();
         vars.set("id", instance_id);
 
-        let swarm = manager
+        let instance = manager
             .manifest()
-            .get_swarm(&instance.swarm)
-            .ok_or_else(|| anyhow::anyhow!("Swarm '{}' not found", instance.swarm))?;
+            .get_instance(&swarm.swarm)
+            .ok_or_else(|| anyhow::anyhow!("Swarm '{}' not found", swarm.swarm))?;
 
-        let allocated_ports = allocate_ports(&swarm.ports).await?;
+        let allocated_ports = allocate_ports(&instance.ports).await?;
         for (name, port) in allocated_ports {
             vars.set(format!("ports[{}]", name), port);
             vars.set(format!("swarm.instance.ports[{}]", name), port);
             vars.set("swarm.instance.id", instance_id);
         }
 
-        let exec = vars.substitute(&swarm.executable);
+        let exec = vars.substitute(&instance.executable);
         info!("Spawning process {} with executable {}", instance_id, exec);
         let mut command = process::Command::new(exec);
 
-        if let Some(ref base_dir) = swarm.working_dir {
+        if let Some(ref base_dir) = instance.working_dir {
             let base_dir = vars.substitute(base_dir);
             tokio::fs::create_dir_all(&base_dir)
                 .await
@@ -66,7 +66,7 @@ impl Process {
 
         info!(
             "Spawning child process: {}",
-            swarm
+            instance
                 .args
                 .iter()
                 .map(|a| vars.substitute(a))
@@ -75,8 +75,8 @@ impl Process {
         );
 
         let child = command
-            .envs(swarm.env.iter().map(|(k, v)| (k, vars.substitute(v))))
-            .args(swarm.args.iter().map(|a| vars.substitute(a)))
+            .envs(instance.env.iter().map(|(k, v)| (k, vars.substitute(v))))
+            .args(instance.args.iter().map(|a| vars.substitute(a)))
             .kill_on_drop(true)
             .stdout(Stdio::piped())
             .spawn()
@@ -84,7 +84,7 @@ impl Process {
         let pid = child.id().ok_or_else(|| {
             anyhow!(
                 "Instance {}{} has exited unexpectedly",
-                instance.name,
+                swarm.name,
                 instance_id
             )
         })?;
@@ -93,7 +93,7 @@ impl Process {
         let sender = ProcessWorker::spawn(
             instance_id,
             child,
-            swarm.clone(),
+            instance.clone(),
             manager.manifest().clone(),
             action_provider,
             vars,
@@ -113,7 +113,7 @@ struct ProcessWorker {
     child: process::Child,
     receiver: mpsc::Receiver<ProcessCommand>,
     lines_buf: VecDeque<String>,
-    config: SwarmConfig,
+    config: InstanceConfig,
     manifest: SwarmManifest,
     action_provider: ActionProvider,
     vars: Variables,
@@ -124,7 +124,7 @@ impl ProcessWorker {
     pub fn spawn(
         instance_id: InstanceId,
         child: process::Child,
-        config: SwarmConfig,
+        config: InstanceConfig,
         manifest: SwarmManifest,
         action_provider: ActionProvider,
         vars: Variables,

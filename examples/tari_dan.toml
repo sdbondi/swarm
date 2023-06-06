@@ -1,19 +1,24 @@
-[[instances]]
+[[swarms]]
 name = "first"
 swarm = "validators"
 id_range = "1..=2"
 
-[[instances]]
+[[swarms]]
 name = "swarm1"
 swarm = "validators"
 id_range = "1..=8"
 
-[[instances]]
+[[swarms]]
 name = "swarm2"
 swarm = "validators"
 id_range = "9..=16"
 
 [[swarms]]
+name = "indexers"
+swarm = "indexers"
+num_instances = 1
+
+[[instances]]
 name = "validators"
 executable = "/home/stan/tari/dan/target/debug/tari_validator_node"
 working_dir = "/home/stan/Litterbox/validators"
@@ -34,9 +39,9 @@ env = { }
 actions.on_after_first_start = ["register"]
 actions.on_after_start = ["connect-seed-peer"]
 #actions.on_interval = [{ interval = "1m", actions = ["register"] }]
-actions.options = ["register", "connect-seed-peer"]
+#actions.options = ["register", "connect-seed-peer"]
 
-[[swarms]]
+[[instances]]
 name = "indexers"
 executable = "/home/stan/tari/dan/target/debug/tari_indexer"
 working_dir = "/home/stan/Litterbox/indexers"
@@ -50,12 +55,12 @@ args = [
     "-plocalnet.p2p.seeds.peer_seeds={seed_peer_1_public_key}::{seed_peer_1_address}",
     "-pindexer.p2p.transport.type=tcp",
     "-pindexer.p2p.transport.tcp.listener_address=/ip4/127.0.0.1/tcp/{ports[p2p]}",
-    "-pindexer.public_address=/ip4/127.0.0.1/tcp/{ports[p2p]}",
+    "-pindexer.p2p.public_addresses=/ip4/127.0.0.1/tcp/{ports[p2p]}",
     "-pindexer.p2p.allow_test_addresses=true",
 ]
 env = { }
 actions.on_after_start = ["connect-seed-peer"]
-actions.options = ["connect-seed-peer"]
+#actions.options = ["connect-seed-peer"]
 
 [[actions]]
 name = "register"

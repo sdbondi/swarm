@@ -4,8 +4,8 @@ use manager::ProcessManager;
 
 #[derive(Debug, Args, Clone)]
 pub struct RunActionCmd {
-    /// Instance group to use
-    pub instance: String,
+    /// Swarm to run the action on
+    pub swarm_name: String,
     /// Action to run
     pub action: String,
 }
@@ -14,7 +14,7 @@ impl RunActionCmd {
     pub async fn run(&self, manager: ProcessManager) -> anyhow::Result<()> {
         let instances = manager
             .manifest()
-            .get_instance_group(&self.instance)
+            .get_swarm(&self.swarm_name)
             .ok_or(anyhow::anyhow!("Instance group not found"))?;
 
         let mut variables = manager.manifest().variables().clone();

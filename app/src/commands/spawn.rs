@@ -1,16 +1,19 @@
 use clap::Args;
 use manager::ProcessManager;
+use manifest::StringList;
 use std::future::pending;
 
 #[derive(Debug, Args, Clone)]
 pub struct StartSwarmCmd {
     /// Instance group to spawn
-    instance: String,
+    instances: StringList,
 }
 
 impl StartSwarmCmd {
     pub async fn run(&self, mut manager: ProcessManager) -> anyhow::Result<()> {
-        manager.spawn_instance_group(&self.instance).await?;
+        for instance in &self.instances {
+            manager.spawn_swarm(&instance).await?;
+        }
 
         // wait forever
         pending::<()>().await;
