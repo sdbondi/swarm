@@ -1,5 +1,5 @@
 use crate::actions::ActionProvider;
-use crate::actions::SwarmAction;
+use crate::ProcessManager;
 use anyhow::{anyhow, Context};
 use colored::Colorize;
 use log::*;
@@ -33,13 +33,14 @@ impl Process {
     pub async fn spawn(
         instance_id: InstanceId,
         instance: &InstanceConfig,
-        manifest: &SwarmManifest,
+        manager: &ProcessManager,
         is_first_start: bool,
     ) -> anyhow::Result<Self> {
-        let mut vars = manifest.variables().clone();
+        let mut vars = manager.manifest().variables().clone();
         vars.set("id", instance_id);
 
-        let swarm = manifest
+        let swarm = manager
+            .manifest()
             .get_swarm(&instance.swarm)
             .ok_or_else(|| anyhow::anyhow!("Swarm '{}' not found", instance.swarm))?;
 
@@ -63,6 +64,16 @@ impl Process {
             command.current_dir(base_dir);
         }
 
+        info!(
+            "Spawning child process: {}",
+            swarm
+                .args
+                .iter()
+                .map(|a| vars.substitute(a))
+                .collect::<Vec<String>>()
+                .join(" ")
+        );
+
         let child = command
             .envs(swarm.env.iter().map(|(k, v)| (k, vars.substitute(v))))
             .args(swarm.args.iter().map(|a| vars.substitute(a)))
@@ -78,12 +89,12 @@ impl Process {
             )
         })?;
 
-        let action_provider = ActionProvider::new(manifest.actions.clone());
+        let action_provider = manager.action_provider().clone();
         let sender = ProcessWorker::spawn(
             instance_id,
             child,
             swarm.clone(),
-            manifest.clone(),
+            manager.manifest().clone(),
             action_provider,
             vars,
             is_first_start,

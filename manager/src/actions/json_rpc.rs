@@ -4,21 +4,6 @@ use manifest::Variables;
 use serde_json as json;
 use serde_json::json;
 
-pub(crate) fn instantiate_action(
-    name: String,
-    url: String,
-    method: String,
-    params: Option<json::Value>,
-) -> JsonRpcAction {
-    JsonRpcAction {
-        request_id: 1,
-        name,
-        url,
-        method,
-        params,
-    }
-}
-
 pub struct JsonRpcAction {
     request_id: usize,
     name: String,
@@ -28,6 +13,21 @@ pub struct JsonRpcAction {
 }
 
 impl JsonRpcAction {
+    pub(crate) fn new(
+        name: String,
+        url: String,
+        method: String,
+        params: Option<json::Value>,
+    ) -> Self {
+        Self {
+            request_id: 0,
+            name,
+            url,
+            method,
+            params,
+        }
+    }
+
     fn next_request_id(&mut self) -> usize {
         let id = self.request_id;
         self.request_id += 1;

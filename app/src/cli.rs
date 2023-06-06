@@ -2,6 +2,7 @@
 //   SPDX-License-Identifier: BSD-3-Clause
 
 use crate::commands::check_config::CheckManifestCmd;
+use crate::commands::run_action::RunActionCmd;
 use crate::commands::spawn::StartSwarmCmd;
 use clap::{Args, Parser, Subcommand};
 use manifest::{load_from_file, SwarmManifest};
@@ -29,6 +30,8 @@ impl Cli {
 pub enum Command {
     #[clap(alias = "start")]
     StartSwarm(StartSwarmCmd),
+    #[clap(alias = "run")]
+    RunAction(RunActionCmd),
     #[clap(alias = "check")]
     CheckManifest(CheckManifestCmd),
 }

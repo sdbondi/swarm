@@ -36,6 +36,27 @@ actions.on_after_start = ["connect-seed-peer"]
 #actions.on_interval = [{ interval = "1m", actions = ["register"] }]
 actions.options = ["register", "connect-seed-peer"]
 
+[[swarms]]
+name = "indexers"
+executable = "/home/stan/tari/dan/target/debug/tari_indexer"
+working_dir = "/home/stan/Litterbox/indexers"
+ports = ["jrpc_port", "webui", "p2p"]
+args = [
+    "--base-path",
+    "./indexer{id}",
+    "--rpc-address", "127.0.0.1:{ports[jrpc_port]}",
+    "--network",
+    "localnet",
+    "-plocalnet.p2p.seeds.peer_seeds={seed_peer_1_public_key}::{seed_peer_1_address}",
+    "-pindexer.p2p.transport.type=tcp",
+    "-pindexer.p2p.transport.tcp.listener_address=/ip4/127.0.0.1/tcp/{ports[p2p]}",
+    "-pindexer.public_address=/ip4/127.0.0.1/tcp/{ports[p2p]}",
+    "-pindexer.p2p.allow_test_addresses=true",
+]
+env = { }
+actions.on_after_start = ["connect-seed-peer"]
+actions.options = ["connect-seed-peer"]
+
 [[actions]]
 name = "register"
 [actions.json_rpc]
@@ -53,9 +74,8 @@ params.wait_for_dial = false
 
 [[actions]]
 name = "delete-data-dir"
-restart_on_action = true
 [actions.fs_rm]
-path = "/home/stan/Litterbox/validators/vn{swarm.instance.id}/localnet/data/validator/db"
+path = "/home/stan/Litterbox/validators/vn{swarm.instance.id}/localnet/data/validator_node"
 force = true
 
 [variables]

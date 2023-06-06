@@ -3,7 +3,9 @@ use manifest::Variables;
 
 mod json_rpc;
 
+mod fs_rm;
 mod provider;
+
 pub use provider::*;
 
 #[async_trait]
