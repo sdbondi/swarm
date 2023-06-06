@@ -5,6 +5,7 @@ use std::fmt::Display;
 use std::ops::{RangeBounds, RangeInclusive};
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::time::Duration;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -45,8 +46,28 @@ pub struct SwarmConfig {
     #[serde(default)]
     pub ports: Vec<String>,
     #[serde(default)]
-    pub on_first_start: Vec<String>,
+    pub actions: SwarmActions,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SwarmActions {
     #[serde(default)]
+    pub on_after_first_start: Vec<String>,
+    #[serde(default)]
+    pub on_after_start: Vec<String>,
+    #[serde(default)]
+    pub on_interval: Vec<IntervalAction>,
+    /// Actions that can be triggered manually
+    #[serde(default)]
+    pub options: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IntervalAction {
+    #[serde(with = "humantime_serde")]
+    pub interval: Duration,
     pub actions: Vec<String>,
 }
 
@@ -92,15 +113,15 @@ impl InstanceConfig {
     }
 }
 
-pub type ProcessId = usize;
+pub type InstanceId = usize;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstanceIdRange {
-    range: RangeInclusive<ProcessId>,
+    range: RangeInclusive<InstanceId>,
 }
 
 impl InstanceIdRange {
-    pub fn range(&self) -> RangeInclusive<ProcessId> {
+    pub fn range(&self) -> RangeInclusive<InstanceId> {
         self.range.clone()
     }
 }
@@ -116,10 +137,10 @@ impl FromStr for InstanceIdRange {
             return Err(anyhow::anyhow!("start and end range cannot be empty"));
         }
         let start = start.parse()?;
-        let end = if end.chars().nth(0).expect("empty checked") == '=' {
+        let end = if end.chars().next().expect("empty checked") == '=' {
             end[1..].parse()?
         } else {
-            end.parse::<ProcessId>()? - 1
+            end.parse::<InstanceId>()? - 1
         };
 
         Ok(InstanceIdRange { range: start..=end })
@@ -132,7 +153,7 @@ impl Display for InstanceIdRange {
     }
 }
 
-impl<T: RangeBounds<ProcessId>> From<T> for InstanceIdRange {
+impl<T: RangeBounds<InstanceId>> From<T> for InstanceIdRange {
     fn from(value: T) -> Self {
         let start = match value.start_bound() {
             std::ops::Bound::Included(&start) => start,

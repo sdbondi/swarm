@@ -1,9 +1,9 @@
 use crate::actions::ActionProvider;
 use crate::actions::SwarmAction;
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use colored::Colorize;
 use log::*;
-use manifest::{InstanceConfig, ProcessId, SwarmConfig, SwarmManifest, Variables};
+use manifest::{InstanceConfig, InstanceId, SwarmConfig, SwarmManifest, Variables};
 use std::collections::{HashMap, VecDeque};
 use std::net::IpAddr;
 use std::process::Stdio;
@@ -11,26 +11,33 @@ use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::net::TcpListener;
 use tokio::sync::{mpsc, oneshot};
+use tokio::time::Instant;
 use tokio::{process, task, time};
 
 pub struct Process {
     // child: process::Child,
-    id: ProcessId,
+    instance_id: InstanceId,
+    pid: u32,
     sender: mpsc::Sender<ProcessCommand>,
 }
 
 impl Process {
-    pub fn id(&self) -> ProcessId {
-        self.id
+    pub fn instance_id(&self) -> InstanceId {
+        self.instance_id
+    }
+
+    pub fn pid(&self) -> u32 {
+        self.pid
     }
 
     pub async fn spawn(
-        id: ProcessId,
+        instance_id: InstanceId,
         instance: &InstanceConfig,
         manifest: &SwarmManifest,
+        is_first_start: bool,
     ) -> anyhow::Result<Self> {
         let mut vars = manifest.variables().clone();
-        vars.set("id", id);
+        vars.set("id", instance_id);
 
         let swarm = manifest
             .get_swarm(&instance.swarm)
@@ -40,11 +47,11 @@ impl Process {
         for (name, port) in allocated_ports {
             vars.set(format!("ports[{}]", name), port);
             vars.set(format!("swarm.instance.ports[{}]", name), port);
-            vars.set("swarm.instance.id", id);
+            vars.set("swarm.instance.id", instance_id);
         }
 
         let exec = vars.substitute(&swarm.executable);
-        info!("Spawning process {} with executable {}", id, exec);
+        info!("Spawning process {} with executable {}", instance_id, exec);
         let mut command = process::Command::new(exec);
 
         if let Some(ref base_dir) = swarm.working_dir {
@@ -63,23 +70,35 @@ impl Process {
             .stdout(Stdio::piped())
             .spawn()
             .context("Failed to spawn child process")?;
+        let pid = child.id().ok_or_else(|| {
+            anyhow!(
+                "Instance {}{} has exited unexpectedly",
+                instance.name,
+                instance_id
+            )
+        })?;
 
         let action_provider = ActionProvider::new(manifest.actions.clone());
         let sender = ProcessWorker::spawn(
-            id,
+            instance_id,
             child,
             swarm.clone(),
             manifest.clone(),
             action_provider,
             vars,
+            is_first_start,
         );
 
-        Ok(Self { id, sender })
+        Ok(Self {
+            instance_id,
+            pid,
+            sender,
+        })
     }
 }
 
 struct ProcessWorker {
-    id: ProcessId,
+    id: InstanceId,
     child: process::Child,
     receiver: mpsc::Receiver<ProcessCommand>,
     lines_buf: VecDeque<String>,
@@ -87,20 +106,22 @@ struct ProcessWorker {
     manifest: SwarmManifest,
     action_provider: ActionProvider,
     vars: Variables,
+    is_first_start: bool,
 }
 
 impl ProcessWorker {
     pub fn spawn(
-        process_id: ProcessId,
-        mut child: process::Child,
+        instance_id: InstanceId,
+        child: process::Child,
         config: SwarmConfig,
         manifest: SwarmManifest,
         action_provider: ActionProvider,
         vars: Variables,
+        is_first_start: bool,
     ) -> mpsc::Sender<ProcessCommand> {
         let (tx, rx) = mpsc::channel(1);
         let worker = Self {
-            id: process_id,
+            id: instance_id,
             child,
             receiver: rx,
             lines_buf: VecDeque::with_capacity(1000),
@@ -108,6 +129,7 @@ impl ProcessWorker {
             manifest,
             action_provider,
             vars,
+            is_first_start,
         };
 
         task::spawn(worker.run());
@@ -115,7 +137,7 @@ impl ProcessWorker {
     }
 
     pub async fn run(mut self) {
-        let mut stdout = self.child.stdout.take().unwrap();
+        let stdout = self.child.stdout.take().unwrap();
         let mut stdout = BufReader::new(stdout).lines();
         let after_start_timer = time::sleep(Duration::from_secs(5));
         tokio::pin!(after_start_timer);
@@ -149,31 +171,45 @@ impl ProcessWorker {
                 },
 
                 _ = &mut after_start_timer => {
+                    // Never again
+                    after_start_timer.as_mut().reset(Instant::now() + Duration::from_secs(10000*365*24*60*60));
                     // TODO: check that all allocated ports are active / pidfile exists before considering ready
-                    info!("[{}] AFTER START triggered", self.id);
-                    if let Err(err) = self.on_first_start().await {
-                        error!("Failed to run on_first_start: {}", err);
+                    if self.is_first_start {
+                        info!("[{}] AFTER FIRST START triggered", self.id);
+                        if let Err(err) = self.on_after_first_start().await {
+                            error!("Failed to run on_first_start: {}", err);
+                        }
                     }
 
-                    break;
+                    info!("[{}] AFTER START triggered", self.id);
+                    if let Err(err) = self.on_after_start().await {
+                        error!("Failed to run on_start: {}", err);
+                    }
                 }
             }
         }
     }
 
-    async fn on_first_start(&self) -> anyhow::Result<()> {
-        for action in &self.config.on_first_start {
-            let mut a = self.action_provider.get_action(action).ok_or_else(|| {
-                anyhow::anyhow!("Action '{}' not found for on_first_start", action,)
-            })?;
-            if let Err(err) = a.execute(&self.vars).await {
-                error!(
-                    "Failed to execute on_first_start action '{}': {}",
-                    action, err
-                );
-            }
+    async fn on_after_start(&self) -> anyhow::Result<()> {
+        for name in &self.config.actions.on_after_start {
+            self.execute_action(name).await?;
         }
         Ok(())
+    }
+
+    async fn on_after_first_start(&self) -> anyhow::Result<()> {
+        for name in &self.config.actions.on_after_first_start {
+            self.execute_action(name).await?;
+        }
+        Ok(())
+    }
+
+    async fn execute_action(&self, name: &str) -> anyhow::Result<()> {
+        let mut action = self
+            .action_provider
+            .get_action(name)
+            .ok_or_else(|| anyhow::anyhow!("Action '{}' not found for on_first_start", name))?;
+        action.execute(&self.vars).await
     }
 }
 

@@ -1,4 +1,9 @@
 [[instances]]
+name = "first"
+swarm = "validators"
+id_range = "1..=2"
+
+[[instances]]
 name = "swarm1"
 swarm = "validators"
 id_range = "1..=8"
@@ -6,7 +11,7 @@ id_range = "1..=8"
 [[instances]]
 name = "swarm2"
 swarm = "validators"
-id_range = "8..=16"
+id_range = "9..=16"
 
 [[swarms]]
 name = "validators"
@@ -26,31 +31,33 @@ args = [
     "-pvalidator_node.p2p.allow_test_addresses=true",
 ]
 env = { }
-on_first_start = ["register"]
-actions = ["register", "add-peer"]
+actions.on_after_first_start = ["register"]
+actions.on_after_start = ["connect-seed-peer"]
+#actions.on_interval = [{ interval = "1m", actions = ["register"] }]
+actions.options = ["register", "connect-seed-peer"]
 
 [[actions]]
 name = "register"
 [actions.json_rpc]
-    url = "http://127.0.0.1:{swarm.instance.ports[jrpc_port]}/json_rpc"
-    method = "register_validator_node"
+url = "http://127.0.0.1:{swarm.instance.ports[jrpc_port]}/json_rpc"
+method = "register_validator_node"
 
 [[actions]]
-name = "add-peer"
+name = "connect-seed-peer"
 [actions.json_rpc]
-    url = "http://127.0.0.1:{swarm.instance.ports[jrpc_port]}/json_rpc"
-    method = "add_peer"
-    params.public_key= "{seed_peer_1_public_key}"
-    params.addresses = ["{seed_peer_1_address}"]
-    params.wait_for_dial = false
+url = "http://127.0.0.1:{swarm.instance.ports[jrpc_port]}/json_rpc"
+method = "add_peer"
+params.public_key = "{seed_peer_1_public_key}"
+params.addresses = ["{seed_peer_1_address}"]
+params.wait_for_dial = false
 
 [[actions]]
 name = "delete-data-dir"
 restart_on_action = true
 [actions.fs_rm]
-    path = "/home/stan/Litterbox/validators/vn{swarm.instance.id}/localnet/data/validator/db"
-    force = true
+path = "/home/stan/Litterbox/validators/vn{swarm.instance.id}/localnet/data/validator/db"
+force = true
 
 [variables]
-seed_peer_1_public_key = "44907f70503186118d00583be1ffada4545afb76a66e224e91ee1ccdb3285e30"
-seed_peer_1_address = "/onion3/teiqzp67p76lxx67bu6cigcdo7lrjdqakbn25plelqh3z6urbaorezqd:18141"
+seed_peer_1_public_key = "52bef4d946a13d3cc39f3adc11471b551109e0f3f7a726a941b4a7d3c3896160"
+seed_peer_1_address = "/ip4/127.0.0.1/tcp/12345"

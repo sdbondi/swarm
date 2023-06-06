@@ -1,6 +1,7 @@
 use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize, Serializer};
 
 pub mod string {
+    #![allow(dead_code)]
     use super::*;
     use std::str::FromStr;
 

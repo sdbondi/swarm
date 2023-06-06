@@ -40,7 +40,7 @@ impl SwarmAction for JsonRpcAction {
     async fn execute(&mut self, vars: &Variables) -> anyhow::Result<()> {
         let client = reqwest::Client::builder().build()?;
 
-        let params = self.params.as_ref().map(|p| substitute_params(&p, vars));
+        let params = self.params.as_ref().map(|p| substitute_params(p, vars));
         let request_json = json!(
             {
                 "jsonrpc": "2.0",
@@ -50,7 +50,7 @@ impl SwarmAction for JsonRpcAction {
             }
         );
         println!("[{}] {}: {}", self.name, self.method, request_json);
-        let mut builder = client.post(vars.substitute(&self.url));
+        let builder = client.post(vars.substitute(&self.url));
         // TODO: headers
         // if let Some(header) = &self.headers {
         // builder = builder.header(AUTHORIZATION, format!("Bearer {}", token));
@@ -69,14 +69,14 @@ fn substitute_params(params: &json::Value, vars: &Variables) -> json::Value {
         json::Value::Object(map) => {
             let mut new_map = json::Map::new();
             for (k, v) in map {
-                new_map.insert(k.clone(), substitute_params(&v, vars));
+                new_map.insert(k.clone(), substitute_params(v, vars));
             }
             json::Value::Object(new_map)
         }
         json::Value::Array(arr) => {
             let mut new_arr = Vec::with_capacity(arr.len());
             for v in arr {
-                new_arr.push(substitute_params(&v, vars));
+                new_arr.push(substitute_params(v, vars));
             }
             json::Value::Array(new_arr)
         }

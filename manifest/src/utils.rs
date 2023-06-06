@@ -4,7 +4,6 @@ use anyhow::Context;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-use std::str::FromStr;
 
 pub fn load_from_file<P: AsRef<Path>>(path: P) -> anyhow::Result<SwarmManifest> {
     let config_fmt = path
@@ -14,7 +13,7 @@ pub fn load_from_file<P: AsRef<Path>>(path: P) -> anyhow::Result<SwarmManifest> 
         .to_str()
         .unwrap()
         .parse()?;
-    let mut config_file = File::open(&path)
+    let config_file = File::open(&path)
         .with_context(|| format!("Open config file {} failed", path.as_ref().display()))?;
     load_from_reader(config_file, config_fmt)
 }

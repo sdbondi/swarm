@@ -1,5 +1,6 @@
 use sqlx::migrate::MigrateDatabase;
-use sqlx::{Connection, Executor, Sqlite, SqlitePool};
+use sqlx::pool::PoolConnection;
+use sqlx::{Sqlite, SqlitePool};
 
 pub struct ManagerStorage {
     connection: SqlitePool,
@@ -15,14 +16,10 @@ impl ManagerStorage {
         Ok(Self { connection })
     }
 
-    pub async fn write_access(&self) -> anyhow::Result<WriteAccess> {
-        let mut conn = self.connection.acquire().await?;
-        Ok(WriteAccess { connection: conn })
+    pub async fn get_connection(&self) -> anyhow::Result<PoolConnection<Sqlite>> {
+        let conn = self.connection.acquire().await?;
+        Ok(conn)
     }
-}
-
-pub struct WriteAccess {
-    pub connection: sqlx::pool::PoolConnection<sqlx::Sqlite>,
 }
 
 #[cfg(test)]

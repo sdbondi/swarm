@@ -39,7 +39,7 @@ impl Variables {
                 }
 
                 let mut var = String::new();
-                while let Some(c) = chars.next() {
+                for c in chars.by_ref() {
                     if c == '}' {
                         break;
                     }

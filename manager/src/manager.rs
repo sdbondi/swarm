@@ -3,7 +3,7 @@ use crate::process::Process;
 use crate::storage::ManagerStorage;
 use anyhow::Context;
 use manifest::SwarmManifest;
-use sqlx::{Acquire, Connection};
+use sqlx::Acquire;
 
 pub struct ProcessManager {
     storage: ManagerStorage,
@@ -28,14 +28,17 @@ impl ProcessManager {
             .get_instance_group(instance)
             .ok_or(anyhow::anyhow!("Instance group not found"))?;
 
-        let mut access = self.storage.write_access().await?;
-        let mut tx = access.connection.begin().await?;
+        let mut conn = self.storage.get_connection().await?;
+        let mut tx = conn.begin().await?;
         for id in instance.get_id_range().unwrap().range() {
-            let process = Process::spawn(id, instance, &self.manifest)
+            let is_first_start =
+                !models::ProcessEntity::instance_exists(&mut tx, &instance.name, id).await?;
+            let process = Process::spawn(id, instance, &self.manifest, is_first_start)
                 .await
                 .context("Failed to spawn process")?;
-            let entity = models::ProcessEntity::create(&mut tx, &instance.name, &process).await?;
-            println!("Spawned process: {:?}", entity);
+
+            models::ProcessEntity::create_if_nexist(&mut tx, &instance.name, &process).await?;
+            println!("Spawned process: {}", process.instance_id());
             self.processes.push(process);
         }
         tx.commit().await?;
