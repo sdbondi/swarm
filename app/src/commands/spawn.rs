@@ -1,6 +1,6 @@
+use crate::StringList;
 use clap::Args;
 use manager::ProcessManager;
-use manifest::StringList;
 use std::future::pending;
 
 #[derive(Debug, Args, Clone)]
@@ -12,7 +12,7 @@ pub struct StartSwarmCmd {
 impl StartSwarmCmd {
     pub async fn run(&self, mut manager: ProcessManager) -> anyhow::Result<()> {
         for instance in &self.instances {
-            manager.spawn_swarm(&instance).await?;
+            manager.spawn_swarm(instance).await?;
         }
 
         // wait forever

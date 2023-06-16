@@ -46,7 +46,7 @@ impl ProcessManager {
                 !models::ProcessEntity::instance_exists(&mut tx, &swarm.name, id).await?;
             let process = Process::spawn(id, swarm, self, is_first_start)
                 .await
-                .context("Failed to spawn process")?;
+                .with_context(|| format!("Failed to spawn process for instance group {name}"))?;
 
             models::ProcessEntity::create_if_nexist(&mut tx, &swarm.name, &process).await?;
             println!("Spawned process: {}", process.instance_id());

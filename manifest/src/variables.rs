@@ -1,22 +1,27 @@
 use serde::{Deserialize, Serialize};
+use serde_json as json;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct Variables(HashMap<String, String>);
+pub struct Variables(HashMap<String, json::Value>);
 
 impl Variables {
     pub fn new() -> Self {
         Self(HashMap::new())
     }
 
-    pub fn set<K: Into<String>, V: ToString>(&mut self, key: K, value: V) -> &mut Self {
-        self.0.insert(key.into(), value.to_string());
+    pub fn set<K: Into<String>, V: Serialize>(&mut self, key: K, value: V) -> &mut Self {
+        self.0.insert(key.into(), json::to_value(value).unwrap());
         self
     }
 
     pub fn get(&self, key: &str) -> Option<&str> {
-        self.0.get(key).map(|s| s.as_str())
+        self.0.get(key).and_then(|s| s.as_str())
+    }
+
+    pub fn get_value(&self, key: &str) -> Option<&json::Value> {
+        self.0.get(key)
     }
 
     pub fn substitute(&self, s: &str) -> String {
@@ -52,14 +57,14 @@ impl Variables {
                     }
                     var.push(c);
                 }
-                let Some(var) = self.0.get(&var) else {
+                let Some(value) = self.0.get(&var) else {
                     result.push('{');
                     result.push_str(&var);
                     result.push('}');
                     continue;
                 };
 
-                result.push_str(var);
+                result.push_str(&value.to_string().trim_matches('"'));
             } else {
                 result.push(c);
             }

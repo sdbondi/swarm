@@ -96,6 +96,16 @@ pub enum Action {
         path: PathBuf,
         force: bool,
     },
+    ForEach {
+        #[serde(rename = "for")]
+        for_: String,
+        #[serde(rename = "in")]
+        in_: String,
+        #[serde(rename = "do")]
+        do_: String,
+        #[serde(with = "humantime_serde")]
+        pause: Option<Duration>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

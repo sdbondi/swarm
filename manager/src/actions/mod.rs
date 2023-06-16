@@ -3,6 +3,7 @@ use manifest::Variables;
 
 mod json_rpc;
 
+mod for_each;
 mod fs_rm;
 mod provider;
 

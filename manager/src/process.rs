@@ -74,13 +74,13 @@ impl Process {
                 .join(" ")
         );
 
-        let child = command
+        command
             .envs(instance.env.iter().map(|(k, v)| (k, vars.substitute(v))))
             .args(instance.args.iter().map(|a| vars.substitute(a)))
             .kill_on_drop(true)
-            .stdout(Stdio::piped())
-            .spawn()
-            .context("Failed to spawn child process")?;
+            .stdout(Stdio::piped());
+        info!("Spawning child process: {:?}", command.as_std());
+        let child = command.spawn().context("Failed to spawn child process")?;
         let pid = child.id().ok_or_else(|| {
             anyhow!(
                 "Instance {}{} has exited unexpectedly",

@@ -1,3 +1,4 @@
+use crate::actions::for_each::ForEachAction;
 use crate::actions::{fs_rm, json_rpc};
 use manifest::{Action, SwarmAction};
 
@@ -31,6 +32,19 @@ impl ActionProvider {
                 path: path.clone(),
                 force: *force,
             })),
+            Action::ForEach {
+                for_,
+                in_,
+                do_,
+                pause,
+            } => Some(Box::new(ForEachAction::new(
+                self.clone(),
+                config.name.clone(),
+                for_.clone(),
+                in_.clone(),
+                do_.clone(),
+                *pause,
+            ))),
         }
     }
 }

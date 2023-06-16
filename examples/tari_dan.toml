@@ -1,17 +1,17 @@
 [[swarms]]
-name = "first"
+name = "initial"
 swarm = "validators"
-id_range = "1..=2"
+id_range = "1..=6"
 
 [[swarms]]
 name = "swarm1"
 swarm = "validators"
-id_range = "1..=8"
+id_range = "2..=9"
 
 [[swarms]]
 name = "swarm2"
 swarm = "validators"
-id_range = "9..=16"
+id_range = "10..=100"
 
 [[swarms]]
 name = "indexers"
@@ -20,7 +20,7 @@ num_instances = 1
 
 [[instances]]
 name = "validators"
-executable = "/home/stan/tari/dan/target/debug/tari_validator_node"
+executable = "/home/stan/tari/dan/target/release/tari_validator_node"
 working_dir = "/home/stan/Litterbox/validators"
 ports = ["jrpc_port", "webui", "p2p"]
 args = [
@@ -29,7 +29,7 @@ args = [
     "--rpc-address", "127.0.0.1:{ports[jrpc_port]}",
     "--network",
     "localnet",
-    "-plocalnet.p2p.seeds.peer_seeds={seed_peer_1_public_key}::{seed_peer_1_address}",
+    "-plocalnet.p2p.seeds.peer_seeds={seed_peer_1_public_key}::{seed_peer_1_address},{seed_peer_2_public_key}::{seed_peer_2_address}",
     "-pvalidator_node.p2p.transport.type=tcp",
     "-pvalidator_node.p2p.transport.tcp.listener_address=/ip4/127.0.0.1/tcp/{ports[p2p]}",
     "-pvalidator_node.public_address=/ip4/127.0.0.1/tcp/{ports[p2p]}",
@@ -43,7 +43,7 @@ actions.on_after_start = ["connect-seed-peer"]
 
 [[instances]]
 name = "indexers"
-executable = "/home/stan/tari/dan/target/debug/tari_indexer"
+executable = "/home/stan/tari/dan/target/release/tari_indexer"
 working_dir = "/home/stan/Litterbox/indexers"
 ports = ["jrpc_port", "webui", "p2p"]
 args = [
@@ -52,7 +52,7 @@ args = [
     "--rpc-address", "127.0.0.1:{ports[jrpc_port]}",
     "--network",
     "localnet",
-    "-plocalnet.p2p.seeds.peer_seeds={seed_peer_1_public_key}::{seed_peer_1_address}",
+    "-plocalnet.p2p.seeds.peer_seeds={seed_peer_1_public_key}::{seed_peer_1_address},{seed_peer_2_public_key}::{seed_peer_2_address}",
     "-pindexer.p2p.transport.type=tcp",
     "-pindexer.p2p.transport.tcp.listener_address=/ip4/127.0.0.1/tcp/{ports[p2p]}",
     "-pindexer.p2p.public_addresses=/ip4/127.0.0.1/tcp/{ports[p2p]}",
@@ -67,6 +67,22 @@ name = "register"
 [actions.json_rpc]
 url = "http://127.0.0.1:{swarm.instance.ports[jrpc_port]}/json_rpc"
 method = "register_validator_node"
+params.fee_claim_public_key = "{fee_claim_public_key}"
+
+[[actions]]
+name = "register_templates"
+[actions.for_each]
+for = "template"
+in = "templates"
+do = "register_template"
+pause = "1s"
+
+[[actions]]
+name = "register_template"
+[actions.json_rpc]
+url = "http://127.0.0.1:{swarm.instance.ports[jrpc_port]}/json_rpc"
+method = "register_template"
+params.template_name = "{template.name}"
 
 [[actions]]
 name = "connect-seed-peer"
@@ -84,5 +100,12 @@ path = "/home/stan/Litterbox/validators/vn{swarm.instance.id}/localnet/data/vali
 force = true
 
 [variables]
-seed_peer_1_public_key = "52bef4d946a13d3cc39f3adc11471b551109e0f3f7a726a941b4a7d3c3896160"
+seed_peer_1_public_key = "169066df4cf19722ce05cfa9ec1beabd4e9ca1012e5eced28bbf3e8f1c6b4f29"
 seed_peer_1_address = "/ip4/127.0.0.1/tcp/12345"
+
+seed_peer_2_public_key = "0ceb8b73797b1522dbc4345b6eae428f1e4516994f1d205952fdf91298652c62"
+seed_peer_2_address = "/ip4/127.0.0.1/tcp/12346"
+fee_claim_public_key = "bc4fbc2f9481821a1faa3039256d1c7b246134ed88731073ca1ba5599f62d475"
+templates = [
+    { name = "sparkle-nft", url = "http://google.com", sha = "52bef4d946a13d3cc39f3adc11471b551109e0f3f7a726a941b4a7d3c3896160" },
+]

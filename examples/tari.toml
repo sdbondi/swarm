@@ -1,0 +1,41 @@
+[[swarms]]
+name = "initial"
+swarm = "bn"
+id_range = "1..=1"
+
+[[swarms]]
+name = "swarm"
+swarm = "bn"
+id_range = "1..=10"
+
+[[swarms]]
+name = "swarm2"
+swarm = "bn"
+id_range = "101..=1000"
+
+
+
+[[instances]]
+name = "bn"
+executable = "/home/stan/tari/tari/target/release/minotari_node"
+working_dir = "/home/stan/Litterbox/base-nodes"
+ports = []
+args = [
+    "--base-path",
+    "./bn{id}",
+    "--network",
+    "igor",
+		"--non-interactive",
+    "-pigor.p2p.seeds.peer_seeds={seed_peer_1_public_key}::{seed_peer_1_address},{seed_peer_2_public_key}::{seed_peer_2_address}",
+]
+env = { }
+#actions.on_after_first_start = ["register"]
+#actions.on_after_start = ["connect-seed-peer"]
+#actions.on_interval = [{ interval = "1m", actions = ["register"] }]
+#actions.options = ["register", "connect-seed-peer"]
+
+[variables]
+seed_peer_1_public_key = "881d8742d4cdf5dc99def7271405e6a3fc56080ea3387cc568b9efdef1cdeb7b"
+seed_peer_1_address = "/onion3/spxhershjnwrl5p366xx2lc44sjxrhu3kypjj6ws3jxe4yiwy5ocftqd:18141"
+seed_peer_2_public_key = "f2be8ea7ebbc2635d2ce8e3740fc778f446a2b77304181bedcb79fe4e754a378"
+seed_peer_2_address = "/onion3/yzszluqnowvoezca24giriez35fmqec3ikd3frc7prsqxjgsgjkehoid:18141"
